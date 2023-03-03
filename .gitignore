@@ -1,4 +1,6 @@
+*.DS_Store
+*.Rhistory
+*.Rdata
 *.rds
 *.out
-*.html
 *_files/
