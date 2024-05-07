@@ -4,3 +4,4 @@
 *.rds
 *.out
 *_files/
+.Rproj.user

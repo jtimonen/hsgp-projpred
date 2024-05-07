@@ -1,0 +1,112 @@
+---
+title: "Problematic projections (kernel param projection)"
+author: "Juho Timonen"
+format: 
+  html:
+    self-contained: true
+    toc: true
+    anchor-sections: true
+    code-fold: true
+    code-summary: "Show code"
+editor: visual
+---
+
+## Setup
+
+```{r}
+library(rstan)
+library(posterior)
+library(ggplot2)
+library(mgcv)
+source("R/rstan.R")
+source("R/search.R")
+source("R/project.R")
+source("R/project_kopt.R")
+source("R/project_old.R") # for project_sigma()
+source("R/simulate.R")
+source("R/plotting.R")
+source("R/selection.R")
+source("R/hs_smooth.R")
+source("R/relevances.R")
+
+CHAINS <- 1
+ITER <- 600
+CN <- list(adapt_delta = 0.9)
+
+# Simulation setup
+rho <- 0.7
+sigma <- 3
+rel_true <- c(1, 1, 0, 0, 1, 0, 0, 0) # true relevances
+n <- 600
+D <- length(rel_true)
+set.seed(7899) # fix random seed
+```
+
+## Data simulation
+
+```{r}
+# Run sim and create data setup
+dat <- simulate(n, rho, rel_true, sigma)
+n <- length(dat$y)
+splt <- create_split(n, 0.5)
+ds <- list(dat = dat, split = splt)
+```
+
+## Fitting reference model
+
+```{r}
+# Model setup
+# Create the Stan model
+mod <- rstan::stan_model("stan/model_sample.stan")
+ms <- list(
+  stan_model = mod,
+  B = 24,
+  scale_bf = 1.5
+)
+
+dat_df <- create_data_frame(ds, test = FALSE)
+
+
+fmf1 <- fit_full_model(ds, ms,
+  chains = CHAINS, iter = ITER, control = CN,
+  thin = 10,
+  seed = 507949442
+)
+```
+
+## Ranking the variables
+
+```{r}
+# Rank and print the ordering
+cv1 <- comp_vars(fmf1$fit, fmf1$J)
+path <- sort(cv1, index.return = T, decreasing = T)$ix
+print(path)
+```
+
+## Visualizing the reference model posterior
+
+```{r}
+pa <- plot(fmf1$fit, pars = c("alpha")) + ggtitle("Magnitudes")
+pb <- plot(fmf1$fit, pars = c("ell")) + ggtitle("Lengthscales")
+ppost <- ggpubr::ggarrange(pa, pb, nrow = 1, ncol = 2)
+ppost
+```
+
+## Performing the projections
+
+```{r}
+options(pp.threshold = Inf) # no stopping condition
+
+# Use HS GP basis
+options(bs.type = "hs")
+
+
+# Run projection again for problematic model
+a <- fmf1
+subm <- c(1) # c(1, 5, 2)
+options(bs.type = "hs")
+p1 <- project_model(subm, a$fit, a$sd)
+
+p2 <- project_model_kopt(subm, a$fit, a$sd)
+```
+

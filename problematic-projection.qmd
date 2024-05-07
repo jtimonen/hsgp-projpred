@@ -18,7 +18,7 @@ library(rstan)
 library(posterior)
 library(ggplot2)
 library(mgcv)
-library(dimreduce)
+# library(dimreduce)
 source("R/rstan.R")
 source("R/search.R")
 source("R/project.R")
@@ -78,7 +78,6 @@ fmf1 <- fit_full_model(ds, ms,
 #  chains = CHAINS, iter = ITER, control = CN,
 #  thin = 10, nctot = 5
 # )
-
 ```
 
 ## Ranking the variables
@@ -104,7 +103,7 @@ ppost
 ```{r}
 # Run selection with projection predictive method
 options(pp.threshold = Inf) # no stopping condition
-#options(min.sp = 1e-1) # lower bound for smoothing parameter
+# options(min.sp = 1e-1) # lower bound for smoothing parameter
 
 # Use HS GP basis
 options(bs.type = "hs")
@@ -199,14 +198,15 @@ rownames(df) <- NULL
 idx_max <- which(abs(df$mu) == max(abs(df$mu)))
 idx_extreme <- df[idx_max, ]$draw_idx
 df_extreme <- df[df$draw_idx == idx_extreme, ]
-cat("Most problematic draw idx: ", idx_extreme-9, "\n", sep ="")
+cat("Most problematic draw idx: ", idx_extreme - 9, "\n", sep = "")
 
 # Plot to identify problematic draw/data point
 plt <- ggplot(df, aes(
   x = draw_idx, y = mu, group = base, color = mlpd,
   pch = base
 )) +
-  geom_point(alpha = 0.75) + xlab("Draw idx (off by 9)")
+  geom_point(alpha = 0.75) +
+  xlab("Draw idx (off by 9)")
 plt
 ```
 
@@ -230,14 +230,14 @@ create_plt_z <- function(w, idx) {
 d_idx <- idx_extreme - 9 # indexing off by 9
 ell_all <- extract(fmf1$fit, "ell")$ell
 cat("Printing all lengthscale draws\n")
-print(round(ell_all,2))
+print(round(ell_all, 2))
 
-ell_extreme <- extract(fmf1$fit, "ell")$ell[d_idx,]
-alpha_extreme <- extract(fmf1$fit, "alpha")$alpha[d_idx,]
+ell_extreme <- extract(fmf1$fit, "ell")$ell[d_idx, ]
+alpha_extreme <- extract(fmf1$fit, "alpha")$alpha[d_idx, ]
 cat("Printing the reference model lengthscales in the most extreme draw\n")
 print(round(ell_extreme, 2))
 cat("Printing the reference model magnitude params in the most extreme draw\n")
-print(round(alpha_extreme,2))
+print(round(alpha_extreme, 2))
 
 plt_z_a <- create_plt_z(w, d_idx) + ggtitle(paste0("Weights, draw_idx = ", d_idx)) +
   theme(legend.position = "top")
@@ -253,7 +253,7 @@ plt_z
 cols <- c("sig2", "gcv.ubre.dev", "deviance", "boundary", "fully.converged", "iter", "score.calls")
 info <- projs$hs$pd$mgcv_info[, cols]
 info$mlpd <- colMeans(projs$hs$all_lpd_test)
-print(info, n=nrow(info))
+print(info, n = nrow(info))
 plot(info$iter, info$mlpd)
 plot(info$gcv.ubre.dev, info$mlpd)
 ```
@@ -263,7 +263,7 @@ plot(info$gcv.ubre.dev, info$mlpd)
 ```{r}
 sp <- projs$hs$pd$smoothing_params
 print(sp)
-plot(info$mlpd, log10(sp$`s(x1)`), xlab="MLPD", ylab="log10(gamma_1)", main="Smoothing param for s(x1)")
+plot(info$mlpd, log10(sp$`s(x1)`), xlab = "MLPD", ylab = "log10(gamma_1)", main = "Smoothing param for s(x1)")
 ```
 
 The smoothing parameter is very small for the bad draw.
@@ -291,23 +291,23 @@ create_4_plots <- function(df, cc, gg) {
 
   plt_ex_x1 <- ggplot(df, aes2) +
     geom_vline(xintercept = train_ranges[, 1], lty = 3) +
-    geom_vline(xintercept = LL[1], lty = 2, col="red") +
-    geom_vline(xintercept = - LL[1], lty = 2, col="red") +
+    geom_vline(xintercept = LL[1], lty = 2, col = "red") +
+    geom_vline(xintercept = -LL[1], lty = 2, col = "red") +
     geom_point(alpha = 0.75) +
     theme(legend.position = "top")
   plt_ex_x2 <- ggplot(df, aes3) +
     geom_vline(xintercept = train_ranges[, 2], lty = 3) +
     geom_point(alpha = 0.75) +
-    geom_vline(xintercept = LL[2], lty = 2, col="red") +
-    geom_vline(xintercept = - LL[2], lty = 2, col="red") +
+    geom_vline(xintercept = LL[2], lty = 2, col = "red") +
+    geom_vline(xintercept = -LL[2], lty = 2, col = "red") +
     theme(legend.position = "top")
   plt_ex_x5 <- ggplot(df, aes4) +
     geom_vline(xintercept = train_ranges[, 3], lty = 3) +
-    geom_vline(xintercept = LL[5], lty = 2, col="red") +
-    geom_vline(xintercept = - LL[5], lty = 2, col="red") +
+    geom_vline(xintercept = LL[5], lty = 2, col = "red") +
+    geom_vline(xintercept = -LL[5], lty = 2, col = "red") +
     geom_point(alpha = 0.75) +
     theme(legend.position = "top")
-  
+
   message("The red dashed lines show the box size [-L, L].")
   message("The black dotted lines show the training data range.")
   pp <- ggpubr::ggarrange(plt_ex_x1, plt_ex_x2, plt_ex_x5, nrow = 1, ncol = 3)
@@ -344,7 +344,7 @@ ytest <- fmf1$sd$y_test
 mu_hs <- df_extreme_hs$mu
 mu_tp <- df_extreme_tp$mu
 plot(mu_tp, mu_hs, main = "All")
-plot(mu_tp, mu_hs, ylim=c(-6,6), main="No edge cases")
+plot(mu_tp, mu_hs, ylim = c(-6, 6), main = "No edge cases")
 ```
 
 ```{r}
@@ -392,7 +392,7 @@ pp[[3]] + ggtitle("Projected component f2")
 ```{r}
 draws_ref <- get_draws(fmf1$fit)
 mu_ref <- draws_ref$f
-mu <- mu_ref[idx_extreme-9,]
+mu <- mu_ref[idx_extreme - 9, ]
 x_train <- t(fmf1$sd$X_train)
 df_save <- data.frame(cbind(x_train, mu)) # saved this
 ```

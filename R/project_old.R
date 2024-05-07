@@ -1,4 +1,3 @@
-
 # Project the beta
 project_weights_lm <- function(X, mu) {
   XtX <- t(X) %*% X

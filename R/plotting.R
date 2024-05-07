@@ -1,4 +1,3 @@
-
 # Plot
 plot_comp <- function(fit, sd, idx, test = FALSE) {
   fq <- get_f_comp_quantiles(fit, idx, test = test)
