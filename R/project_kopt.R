@@ -40,10 +40,6 @@ project_draws_kopt <- function(inds, fit, sd) {
   sigma_proj <- rep(0, S)
   counter <- 0
   weights <- list()
-  terms_train <- list()
-  terms_test <- list()
-  mgcv_info <- list()
-  sp <- list()
 
   for (s in seq_len(S)) {
     counter <- counter + 1
@@ -83,8 +79,8 @@ project_draw_kopt <- function(inds, X, B, L, draws, s) {
   # beta_ref <- as.numeric(draws$glm_b[s, ])
   mu_ref <- as.numeric(draws$f[s, ])
   sigma_ref <- draws$sigma[s]
-  gam_fit <- project_gam(inds, mu_ref, X, B, L)
-  mu_proj <- rep(0, length(mu_ref)) # gam_fit$fitted.values
+  kopt_fit <- project_kernel_params(inds, mu_ref, X, B, L)
+  mu_proj <- kopt_fit$fitted_values
   # sigma_proj_1 <- sqrt(p$sig2) # alt
   sigma_proj <- project_sigma(sigma_ref, mu_ref, mu_proj)
   # print(c(sigma_proj, sigma_proj_1))
@@ -95,4 +91,40 @@ project_draw_kopt <- function(inds, X, B, L, draws, s) {
     mu_proj = mu_proj,
     sigma_proj = sigma_proj
   )
+}
+
+# Project to a submodel that is a GAM
+project_kernel_params <- function(inds, mu_ref, X, B, L) {
+  y <- as.numeric(mu_ref)
+  ii <- inds[1]
+  x <- as.numeric(X[, ii])
+  mu_proj <- y - x
+  list(
+    fitted_values = mu_proj
+  )
+}
+
+# Predict using HSGP
+hsgp_pred <- function(x, alpha, ell, xi, L) {
+  B <- length(xi)
+  PHI <- basisfun_eq(x, B, L) # N x B
+  sb <- basisfun_eq_multipliers(alpha, ell, B, L)
+  w <- t(t(sb * xi)) # B x 1
+  PHI %*% w
+}
+
+# Basis function matrix (EQ kernel)
+basisfun_eq <- function(x, B, L) {
+  N <- length(x)
+  PHI <- matrix(0, N, B)
+  for (b in 1:B) {
+    PHI[, b] <- 1.0 / sqrt(L) * sin(0.5 * b * pi / L * (x + L))
+  }
+  PHI
+}
+
+# Compute the multipliers s_b
+basisfun_eq_multipliers <- function(alpha, ell, B, L) {
+  seq_B <- 1:B
+  alpha^2 * ell * sqrt(2 * pi) * exp(-(ell^2 * pi^2) / (8.0 * L^2) * seq_B^2)
 }
